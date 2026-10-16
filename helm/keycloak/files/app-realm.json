@@ -1,0 +1,99 @@
+{
+  "realm": "app",
+  "displayName": "App",
+  "enabled": true,
+  "sslRequired": "external",
+  "registrationAllowed": false,
+  "resetPasswordAllowed": false,
+  "editUsernameAllowed": false,
+  "loginWithEmailAllowed": true,
+  "bruteForceProtected": true,
+  "failureFactor": 5,
+  "waitIncrementSeconds": 60,
+  "maxFailureWaitSeconds": 900,
+  "passwordPolicy": "length(12) and notUsername",
+  "accessTokenLifespan": 300,
+  "roles": {
+    "realm": [
+      {
+        "name": "user",
+        "description": "Роль приложения для обычного пользователя"
+      },
+      {
+        "name": "admin",
+        "description": "Роль администратора ПРИЛОЖЕНИЯ. Не даёт прав на управление Keycloak"
+      }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "frontend",
+      "name": "Frontend",
+      "description": "Публичный OIDC клиент для браузера: Authorization Code + PKCE",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "fullScopeAllowed": false,
+      "redirectUris": [
+        "https://app.example.com/*",
+        "http://localhost:3000/*"
+      ],
+      "webOrigins": ["+"],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "+"
+      },
+      "protocolMappers": [
+        {
+          "name": "audience-backend",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.client.audience": "backend",
+            "access.token.claim": "true",
+            "id.token.claim": "false"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "backend",
+      "name": "Backend",
+      "description": "Конфиденциальный OIDC клиент API. Сам не логинит пользователей, проверяет токены от frontend",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "${BACKEND_CLIENT_SECRET}",
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "fullScopeAllowed": false
+    }
+  ],
+  "scopeMappings": [
+    {
+      "client": "frontend",
+      "roles": ["user", "admin"]
+    }
+  ],
+  "users": [
+    {
+      "username": "fedor",
+      "enabled": true,
+      "email": "fedor@example.com",
+      "emailVerified": true,
+      "firstName": "Fedor",
+      "lastName": "Test",
+      "credentials": [
+        { "type": "password", "value": "${FEDOR_PASSWORD}", "temporary": false }
+      ],
+      "realmRoles": ["user", "default-roles-app"]
+    }
+  ]
+}

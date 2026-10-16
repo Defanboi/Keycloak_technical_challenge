@@ -1,0 +1,10 @@
+# Конфигурация realm app в JSON. Keycloak импортирует её при первом запуске (--import-realm)
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: keycloak-realm
+  labels:
+    app: keycloak
+data:
+  app-realm.json: |-
+{{ .Files.Get "files/app-realm.json" | indent 4 }}

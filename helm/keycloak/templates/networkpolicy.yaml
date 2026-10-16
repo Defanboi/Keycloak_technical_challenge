@@ -1,0 +1,34 @@
+{{- if .Values.networkPolicy.enabled }}
+# Без этой политики любой под кластера может зайти на keycloak:8080/admin напрямую,
+# минуя Ingress и whitelist. Разрешаем вход только от Ingress Controller и между подами Keycloak.
+# Пробы kubelet идут с ноды, NetworkPolicy их не блокирует.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: keycloak
+  labels:
+    app: keycloak
+spec:
+  podSelector:
+    matchLabels:
+      app: keycloak
+  policyTypes:
+    - Ingress
+  ingress:
+    # Ingress Controller
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ .Values.networkPolicy.ingressControllerNamespace }}
+      ports:
+        - port: 8080
+        - port: 8443
+    # Кластер Keycloak (JGroups) между своими подами
+    - from:
+        - podSelector:
+            matchLabels:
+              app: keycloak
+      ports:
+        - port: 7800
+        - port: 57800
+{{- end }}

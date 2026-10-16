@@ -1,0 +1,25 @@
+# Ingress для обычных пользователей: доступ к Keycloak без ограничений по IP
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: keycloak-for-users
+  namespace: {{ .Release.Namespace }}
+spec:
+  ingressClassName: {{ .Values.ingress.className }}
+  {{- if .Values.ingress.tlsEnabled }}
+  tls:
+    - hosts:
+        - {{ .Values.hostname }}
+      secretName: {{ .Values.tls.secretName }}
+  {{- end }}
+  rules:
+    - host: {{ .Values.hostname }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: keycloak
+                port:
+                  number: 8080

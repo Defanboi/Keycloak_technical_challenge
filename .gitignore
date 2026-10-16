@@ -1,0 +1,40 @@
+# Бэкапы базы: в них хэши паролей и секреты клиентов
+backups/
+backups-*/
+pre-restore/
+*.dump
+*.dump.partial
+*.dump.sha256
+*.sql
+*.sql.gz
+
+# Логи
+*.log
+
+# Секреты, ключи, сертификаты, kubeconfig
+.env
+.env.*
+*.key
+*.pem
+*.crt
+*.p12
+*.pfx
+*.jks
+kubeconfig*
+*.kubeconfig
+.pgpass
+secret*.yaml
+!helm/keycloak/templates/*.yaml
+
+# Упакованные Helm чарты
+*.tgz
+
+# Редакторы, AI-инструменты, системные файлы
+.vscode/
+.idea/
+.claude/
+.cursor/
+*.swp
+*~
+.DS_Store
+Thumbs.db

@@ -1,0 +1,45 @@
+# Кластер PostgreSQL для Keycloak. Им управляет оператор CloudNativePG,
+# который ставится отдельно (см. README). Оператор создаёт поды, PVC и сервисы
+# <имя>-rw (основной сервер), <имя>-ro (реплики), <имя>-r (все).
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: {{ .Values.postgres.clusterName }}
+  labels:
+    app: keycloak-db
+  annotations:
+    # helm uninstall не удаляет базу и её диски. Удалять кластер нужно вручную.
+    helm.sh/resource-policy: keep
+spec:
+  # Основной сервер и реплики. Если основной упадёт, оператор сам переключит на реплику.
+  instances: {{ .Values.postgres.instances }}
+  imageName: {{ .Values.postgres.image }}
+  primaryUpdateStrategy: unsupervised
+  # Сколько ждать отключения клиентов при остановке основного сервера (по умолчанию 180 секунд)
+  smartShutdownTimeout: 30
+
+  bootstrap:
+    initdb:
+      database: {{ .Values.postgres.database }}
+      owner: {{ .Values.postgres.owner }}
+      # Логин и пароль владельца базы из Secret, созданного заранее (в Git его нет)
+      secret:
+        name: {{ .Values.secrets.db }}
+
+  postgresql:
+    parameters:
+      {{- toYaml .Values.postgres.parameters | nindent 6 }}
+
+  storage:
+    # Существующий StorageClass кластера (например Ceph RBD). Сам StorageClass чарт не создаёт.
+    {{- with .Values.postgres.storage.storageClass }}
+    storageClass: {{ . }}
+    {{- end }}
+    size: {{ .Values.postgres.storage.size }}
+
+  resources:
+    {{- toYaml .Values.postgres.resources | nindent 4 }}
+
+  affinity:
+    enablePodAntiAffinity: true
+    topologyKey: kubernetes.io/hostname

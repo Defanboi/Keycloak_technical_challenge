@@ -1,0 +1,82 @@
+image:
+  repository: quay.io/keycloak/keycloak
+  tag: "26.8.1"
+  pullPolicy: IfNotPresent
+
+replicas: 1
+
+# Публичный адрес Keycloak. Используется в KC_HOSTNAME, в обоих Ingress и в сертификате
+hostname: auth.example.com
+
+# Несекретные настройки. Попадают в ConfigMap keycloak-config.
+# KC_HOSTNAME и KC_DB_URL чарт собирает сам из hostname и postgres.*
+config:
+  KC_BOOTSTRAP_ADMIN_USERNAME: admin_kc
+  KC_HTTPS_CERTIFICATE_FILE: /opt/keycloak/conf/tls/tls.crt
+  KC_HTTPS_CERTIFICATE_KEY_FILE: /opt/keycloak/conf/tls/tls.key
+  KC_DB: postgres
+  # Ingress ходит в Keycloak по HTTP на порт 8080, HTTPS на 8443 тоже включён
+  KC_HTTP_ENABLED: "true"
+  KC_PROXY_HEADERS: xforwarded
+  KC_HEALTH_ENABLED: "true"
+  KC_METRICS_ENABLED: "true"
+
+# Secrets создаются вручную до установки, в Git их нет (команды в README)
+secrets:
+  # ключ KC_BOOTSTRAP_ADMIN_PASSWORD
+  admin: keycloak-admin
+  # ключи username и password. Из него CNPG создаёт пользователя базы, Keycloak берёт KC_DB_USERNAME и KC_DB_PASSWORD
+  db: keycloak-db
+  # ключи FEDOR_PASSWORD и BACKEND_CLIENT_SECRET, подставляются в app-realm.json
+  realm: keycloak-realm
+
+# PostgreSQL под управлением CloudNativePG (шаблон templates/cnpg-cluster.yaml)
+postgres:
+  clusterName: pg-keycloak
+  instances: 2
+  image: ghcr.io/cloudnative-pg/postgresql:18.4-minimal-trixie
+  database: keycloak
+  owner: keycloak
+  storage:
+    # Имя StorageClass, который уже есть в кластере (например ceph-rbd).
+    # Пусто: используется StorageClass по умолчанию.
+    storageClass: ""
+    size: 5Gi
+  parameters:
+    max_connections: "200"
+    shared_buffers: "256MB"
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      memory: 1Gi
+
+# Сертификат для HTTPS. Secret с ключами tls.crt и tls.key
+tls:
+  secretName: keycloak-tls
+  # Если в кластере есть cert-manager, чарт сам закажет сертификат у этого ClusterIssuer.
+  # Пусто: Secret keycloak-tls нужно создать самостоятельно.
+  clusterIssuer: ""
+
+ingress:
+  className: nginx
+  # IP VPN, доступный только администраторам Keycloak
+  adminWhitelist: "203.0.113.10/32"
+  # HTTPS на Ingress (тот же Secret keycloak-tls)
+  tlsEnabled: true
+
+# Закрыть прямой доступ к подам Keycloak внутри кластера, в обход Ingress
+networkPolicy:
+  enabled: true
+  # namespace, где работает NGINX Ingress Controller
+  ingressControllerNamespace: ingress-nginx
+
+#для тестового задания такой конфигурации хватит по ограничению ресурсов
+resources:
+  requests:
+    cpu: "500m"
+    memory: "1Gi"
+  limits:
+    cpu: "2000m"
+    memory: "2Gi"

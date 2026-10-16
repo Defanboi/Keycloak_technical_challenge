@@ -1,0 +1,17 @@
+{{- if .Values.tls.clusterIssuer }}
+# Сертификат для Keycloak и Ingress, выпускает cert-manager (если он есть в кластере)
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: keycloak-tls
+spec:
+  secretName: {{ .Values.tls.secretName }}
+  dnsNames:
+    - {{ .Values.hostname }}
+    - keycloak
+    - keycloak.{{ .Release.Namespace }}.svc
+    - keycloak.{{ .Release.Namespace }}.svc.cluster.local
+  issuerRef:
+    kind: ClusterIssuer
+    name: {{ .Values.tls.clusterIssuer }}
+{{- end }}
